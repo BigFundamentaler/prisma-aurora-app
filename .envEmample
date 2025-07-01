@@ -1,0 +1,12 @@
+# .env示例
+# Aurora PostgreSQL 链接字符串
+
+# 格式: 和DATABASE_WRITE_URL一样 其实就是写入器
+DATABASE_URL="postgresql://your_username:your_password@aurora-cluster.cluster-xxxxxxxxx.us-east-1.rds.amazonaws.com:5432/postgres"
+
+# 可选: 分离读写连接（Aurora 读写分离）
+DATABASE_WRITE_URL="postgresql://your_username:your_password@aurora-cluster.cluster-xxxxxxxxx.us-east-1.rds.amazonaws.com:5432/postgres"
+DATABASE_READ_URL="postgresql://your_username:your_password@aurora-cluster.cluster-ro-xxxxxxxxx.us-east-1.rds.amazonaws.com:5432/postgres"
+
+# AWS 区域设置
+AWS_REGION="us-east-1"
