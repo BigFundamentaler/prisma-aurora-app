@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["multiSchema", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [uuid_ossp(map: "uuid-ossp")]
+}
+
+// 用户模型
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  username  String   @unique
+  firstName String?
+  lastName  String?
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+  profile   Profile?
+
+  @@map("users")
+}
+
+// 用户详细信息
+model Profile {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bio      String?
+  website  String?
+  location String?
+  birthday DateTime?
+  userId   String  @unique @db.Uuid
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// 文章模型
+model Post {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  slug        String    @unique
+  content     String?
+  excerpt     String?
+  coverImage  String?
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  viewCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorId    String    @db.Uuid
+
+  // 关联关系
+  author      User        @relation(fields: [authorId], references: [id])
+  comments    Comment[]
+  likes       Like[]
+  tags        PostTag[]
+  categories  PostCategory[]
+
+  @@map("posts")
+  @@index([published, createdAt])
+  @@index([authorId])
+}
+
+// 评论模型
+model Comment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  postId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  parentId  String?  @db.Uuid
+
+  // 关联关系
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+  @@index([postId])
+}
+
+// 点赞模型
+model Like {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @db.Uuid
+  postId String @db.Uuid
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+// 标签模型
+model Tag {
+  id    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String    @unique
+  slug  String    @unique
+  color String?
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+// 文章标签关联
+model PostTag {
+  postId String @db.Uuid
+  tagId  String @db.Uuid
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+// 分类模型
+model Category {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String         @unique
+  slug        String         @unique
+  description String?
+  parentId    String?        @db.Uuid
+
+  parent   Category?       @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[]      @relation("CategoryHierarchy")
+  posts    PostCategory[]
+
+  @@map("categories")
+}
+
+// 文章分类关联
+model PostCategory {
+  postId     String @db.Uuid
+  categoryId String @db.Uuid
+
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("post_categories")
+}
